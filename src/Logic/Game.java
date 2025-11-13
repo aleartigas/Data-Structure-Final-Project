@@ -92,6 +92,12 @@ public class Game {
     public Game() {
         this.save = new File("C:\\Ale\\Codigos\\Filetest", "file0.sav");
         this.archives = new File("C:\\Ale\\Codigos\\Filetest", "file.sav");
+
+        File parent = save.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+
         this.characters = new ArrayList<>();
         this.tasks = new ArrayDeque<>();
         this.items = new ArrayList<>();
@@ -100,12 +106,17 @@ public class Game {
 
     public boolean createSaveGame() {
         boolean created = false;
+
+        File parent = save.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
+
         try (RandomAccessFile raf = new RandomAccessFile(save, "rw")) {
             byte[] data = Convert.toBytes(hero);
             raf.writeInt(data.length);
             raf.write(data);
             created = true;
-            raf.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
