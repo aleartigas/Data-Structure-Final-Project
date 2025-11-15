@@ -1,18 +1,21 @@
 package Characters;
 
-import java.util.LinkedList;
 import Items.*;
 import cu.edu.cujae.ceis.tree.general.GeneralTree;
 import Misc.*;
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.LinkedList;
 import java.util.Queue;
-import javax.swing.Icon;
+import javafx.scene.image.Image;
 
-public class Hero {
+public class Hero implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private String name;
-    private Icon sprite;
+    private String spritePath;
+    private transient Image fxImage;
     private double attack;
     private double magic;
     private double defense;
@@ -25,12 +28,64 @@ public class Hero {
     private Queue<Task> tasks;
     private Deque<Task> completedTasks;
 
+    public Hero(String name) {
+        setName(name);
+        setSpritePath("/Resources/sprites/hero.png");
+        setAttack(5);
+        setMagic(20);
+        setDefense(4);
+        setLevel(1);
+        items = new LinkedList<>();
+        weapons = new LinkedList<>();
+        actualWeapon = null;
+        unlockedClasses = new GeneralTree<>();
+        this.actualClass = null;
+        tasks = new ArrayDeque<>();
+        completedTasks = new ArrayDeque<>();
+        loadFxImage();
+    }
+
+    private void loadFxImage() {
+        if (!(spritePath == null || spritePath.isEmpty())) {
+
+            try {
+                fxImage = new Image(getClass().getResourceAsStream(spritePath));
+                if (fxImage.isError()) {
+                    fxImage = null;
+                }
+            } catch (Throwable ignored) {
+                fxImage = null;
+            }
+        }
+    }
+
+    public Image getImage() {
+        if (fxImage != null) {
+            return fxImage;
+        }
+        loadFxImage();
+        return fxImage;
+    }
+
+    public void setSpritePath(String spritePath) {
+        this.spritePath = spritePath;
+        this.fxImage = null;
+    }
+
+    public String getSpritePath() {
+        return spritePath;
+    }
+
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
-        this.name = name;
+        if (!name.isEmpty()) {
+            this.name = name;
+        } else {
+            throw new IllegalArgumentException("Debe ser mayor que 0");
+        }
     }
 
     public double getAttack() {
@@ -38,7 +93,11 @@ public class Hero {
     }
 
     public void setAttack(double attack) {
-        this.attack = attack;
+        if (attack >= 1) {
+            this.attack = attack;
+        } else {
+            throw new IllegalArgumentException("Debe ser mayor que 0");
+        }
     }
 
     public double getMagic() {
@@ -46,7 +105,11 @@ public class Hero {
     }
 
     public void setMagic(double magic) {
-        this.magic = magic;
+        if (magic >= 1) {
+            this.magic = magic;
+        } else {
+            throw new IllegalArgumentException("Debe ser mayor que 0");
+        }
     }
 
     public double getDefense() {
@@ -54,7 +117,11 @@ public class Hero {
     }
 
     public void setDefense(double defense) {
-        this.defense = defense;
+        if (defense >= 1) {
+            this.defense = defense;
+        } else {
+            throw new IllegalArgumentException("Debe ser mayor que 0");
+        }
     }
 
     public int getLevel() {
@@ -62,7 +129,11 @@ public class Hero {
     }
 
     public void setLevel(int level) {
-        this.level = level;
+        if (level >= 1) {
+            this.level = level;
+        } else {
+            throw new IllegalArgumentException("Debe ser mayor que 0");
+        }
     }
 
     public LinkedList<Item> getItems() {
@@ -104,21 +175,4 @@ public class Hero {
     public void addTasks(Task t) {
         tasks.offer(t);
     }
-
-    public Hero(String name) {
-        this.name = name;
-        sprite = null;
-        this.attack = 5;
-        this.magic = 20;
-        this.defense = 8;
-        this.level = 1;
-        items = new LinkedList<>();
-        weapons = new LinkedList<>();
-        actualWeapon = null;
-        unlockedClasses = new GeneralTree<>();
-        this.actualClass = null;
-        tasks = new ArrayDeque<>();
-        completedTasks = new ArrayDeque<>();
-    }
-
 }
