@@ -163,7 +163,6 @@ public class Game {
         }
         return attacked;
     }
-    
 
     public boolean checkGameOver(int life) {
         boolean dead = false;
