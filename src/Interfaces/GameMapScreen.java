@@ -88,6 +88,9 @@ public class GameMapScreen {
     // Indica si la posición del héroe ya fue inicializada desde fuera (MainScreen)
     private boolean heroPositionInitialized = false;
 
+    // Flag para mostrar/ocultar rectángulos de colisión (debug)
+    private boolean debugEnabled = false;
+
     public GameMapScreen(Game game) {
         this.game = game;
         Hero hero = game != null ? game.getHero() : null;
@@ -145,6 +148,13 @@ public class GameMapScreen {
                 }
                 double dt = (now - last) / 1e9;
                 last = now;
+
+                // Watchdog: si no hay foco, limpia inputs
+                if (root.getScene() == null || !root.isFocused()) {
+                    clearInputState();
+                    return;
+                }
+
                 updateVelocity();
                 boolean moving = (vx != 0 || vy != 0);
                 if (moving) {
@@ -168,6 +178,14 @@ public class GameMapScreen {
                 });
             } else {
                 mover.stop();
+                clearInputState();
+            }
+        });
+
+        // Limpia inputs al perder foco
+        root.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (!isFocused) {
+                clearInputState();
             }
         });
     }
@@ -257,6 +275,8 @@ public class GameMapScreen {
                 handled = true;
                 boolean readyToEnter = currentInteractable != null && currentInteractable.type == ObstacleType.VILLAGE;
                 if (readyToEnter) {
+                    // Antes de entrar, limpiar inputs para evitar "pegado"
+                    clearInputState();
                     enterVillage(currentInteractable);
                 }
             } else if (k == KeyCode.P) {
@@ -309,14 +329,31 @@ public class GameMapScreen {
     }
 
     private void confirmReturnToMenu() {
+        // Limpia estado antes de abrir el diálogo
+        clearInputState();
+
         Alert dlg = new Alert(Alert.AlertType.CONFIRMATION);
         dlg.setTitle("Volver al menú");
         dlg.setHeaderText("¿Quieres volver al menú principal?");
         dlg.setContentText("Si vuelves al menú, la partida seguirá guardada en disco.");
+
+        try {
+            if (root.getScene() != null && root.getScene().getWindow() != null) {
+                dlg.initOwner(root.getScene().getWindow());
+            }
+        } catch (Throwable ignored) {
+        }
+
+        dlg.setOnHidden(ev -> {
+            // Al cerrarse el diálogo, limpiar y devolver foco
+            clearInputState();
+            Platform.runLater(root::requestFocus);
+        });
+
         Optional<ButtonType> opt = dlg.showAndWait();
         boolean ok = opt.isPresent() && opt.get() == ButtonType.OK;
         if (ok) {
-            // Guardar la posición y la localización en el Heroe
+            // Guardar la posición y la localización en el Hero
             try {
                 if (game != null && game.getHero() != null) {
                     Hero h = game.getHero();
@@ -337,6 +374,10 @@ public class GameMapScreen {
             } catch (Throwable ignored) {
             }
             MainScreen.restoreMenuAndMusic();
+        } else {
+            // Si cancela, aseguramos estado limpio y foco
+            clearInputState();
+            Platform.runLater(root::requestFocus);
         }
     }
 
@@ -393,7 +434,9 @@ public class GameMapScreen {
             startMapMusic();
             FXGL.getGameScene().addUINode(root);
             root.requestFocus();
-            drawDebugObstacles();
+            if (debugEnabled) {
+                drawDebugObstacles();
+            }
         });
     }
 
@@ -661,6 +704,10 @@ public class GameMapScreen {
     public void drawDebugObstacles() {
         container.getChildren().removeIf(n -> "debug".equals(n.getProperties().get("tag")));
 
+        if (!debugEnabled) {
+            return;
+        }
+
         for (Obstacle ob : obstacles) {
             if (ob.visualRect != null) {
                 Rectangle rv = new Rectangle(
@@ -696,6 +743,9 @@ public class GameMapScreen {
             // guarda la posición actual del héroe para restaurarla al volver
             final Point2D savedHeroTopLeft = getHeroMapTopLeft();
 
+            // asegurar que no queden inputs pegados
+            clearInputState();
+
             // para evitar inputs mientras cambiamos de pantalla
             stopMapMusic();
             try {
@@ -718,9 +768,12 @@ public class GameMapScreen {
                     // restaurar posición exacta del héroe
                     heroView.setLayoutX(savedHeroTopLeft.getX());
                     heroView.setLayoutY(savedHeroTopLeft.getY());
-                    // refrescar debug y foco
-                    drawDebugObstacles();
+                    // refrescar debug y foco solo si está activado
+                    if (debugEnabled) {
+                        drawDebugObstacles();
+                    }
                     root.requestFocus();
+                    clearInputState();
                     mover.start();
                 });
             });
@@ -729,6 +782,16 @@ public class GameMapScreen {
             a.setTitle("Villa");
             a.setHeaderText(null);
             a.setContentText("Has interactuado con una villa");
+            try {
+                if (root.getScene() != null && root.getScene().getWindow() != null) {
+                    a.initOwner(root.getScene().getWindow());
+                }
+            } catch (Throwable ignored) {
+            }
+            a.setOnHidden(ev -> {
+                clearInputState();
+                Platform.runLater(root::requestFocus);
+            });
             a.showAndWait();
         }
     }
@@ -750,5 +813,19 @@ public class GameMapScreen {
     public void resetHeroToCenter() {
         heroPositionInitialized = false;
         positionHeroCenter();
+    }
+
+    // Control del flag de debug
+    public void enableDebugObstacles(boolean enable) {
+        this.debugEnabled = enable;
+    }
+
+    public boolean isDebugEnabled() {
+        return debugEnabled;
+    }
+
+    private void clearInputState() {
+        up = down = left = right = false;
+        vx = vy = 0;
     }
 }
