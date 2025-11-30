@@ -13,6 +13,11 @@ import javafx.scene.image.Image;
 public class Hero implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    public enum Location {
+        MAP, FIELD_VILLAGE, UNKNOWN
+    }
+
     private String name;
     private String spritePath;
     private transient Image fxImage;
@@ -32,6 +37,10 @@ public class Hero implements Serializable {
     private Queue<Task> tasks;
     private Deque<Task> completedTasks;
 
+    private Location lastLocation = Location.UNKNOWN;
+    private double lastPosX = 0.0;
+    private double lastPosY = 0.0;
+
     public Hero(String name) {
         setName(name);
         setSpritePath("/Resources/sprites/hero.png");
@@ -48,6 +57,30 @@ public class Hero implements Serializable {
         tasks = new ArrayDeque<>();
         completedTasks = new ArrayDeque<>();
         loadFxImage();
+    }
+
+    public Location getLastLocation() {
+        return lastLocation;
+    }
+
+    public void setLastLocation(Location lastLocation) {
+        this.lastLocation = lastLocation != null ? lastLocation : Location.UNKNOWN;
+    }
+
+    public double getLastPosX() {
+        return lastPosX;
+    }
+
+    public void setLastPosX(double lastPosX) {
+        this.lastPosX = lastPosX;
+    }
+
+    public double getLastPosY() {
+        return lastPosY;
+    }
+
+    public void setLastPosY(double lastPosY) {
+        this.lastPosY = lastPosY;
     }
 
     public Armor getArmor() {
@@ -73,8 +106,6 @@ public class Hero implements Serializable {
     public void setActualClass(Classes actualClass) {
         this.actualClass = actualClass;
     }
-    
-    
 
     public int getLife() {
         return life;
@@ -86,7 +117,6 @@ public class Hero implements Serializable {
         } else {
             throw new IllegalArgumentException("Debe ser mayor que 0");
         }
-
     }
 
     public int getActualLife() {
@@ -99,7 +129,6 @@ public class Hero implements Serializable {
 
     private void loadFxImage() {
         if (!(spritePath == null || spritePath.isEmpty())) {
-
             try {
                 fxImage = new Image(getClass().getResourceAsStream(spritePath));
                 if (fxImage.isError()) {
